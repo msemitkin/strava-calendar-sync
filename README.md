@@ -28,7 +28,7 @@ Strava -> Lambda Function URL -> webhook Lambda -> SQS -> worker Lambda
 - A Strava API application. Set its Authorization Callback Domain to `localhost`.
 - A Google Cloud project with Google Calendar API enabled and a service account JSON key.
 
-Java and Gradle do not need to be installed. The Terraform build hook downloads a JDK and Gradle automatically. The code targets Java 17 bytecode and runs on AWS's Java 21 Lambda runtime.
+Java and Gradle do not need to be installed. On macOS or Linux, the Terraform build hook detects ARM64/x64 and downloads the matching JDK plus Gradle automatically. The code targets Java 17 bytecode and runs on AWS's Java 21 Lambda runtime.
 
 ## Deploy
 
