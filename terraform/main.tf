@@ -35,7 +35,10 @@ resource "aws_iam_role" "worker" {
 data "aws_iam_policy_document" "lambda_assume" {
   statement {
     actions = ["sts:AssumeRole"]
-    principals { type = "Service", identifiers = ["lambda.amazonaws.com"] }
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
   }
 }
 
@@ -128,4 +131,3 @@ resource "aws_lambda_permission" "public_invoke" {
   principal              = "*"
   invoked_via_function_url = true
 }
-
