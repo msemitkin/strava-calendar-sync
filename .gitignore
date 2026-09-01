@@ -1,0 +1,13 @@
+.gradle/
+.tools/
+build/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+.env
+.idea/
+*.iml
+__pycache__/
+*.pyc
+

@@ -1,0 +1,35 @@
+plugins { id 'java' }
+
+group = 'dev.msemitkin'
+version = '1.0.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+repositories { mavenCentral() }
+
+dependencies {
+    implementation 'com.amazonaws:aws-lambda-java-core:1.2.3'
+    implementation 'com.amazonaws:aws-lambda-java-events:3.16.1'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.0'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.20.0'
+    implementation platform('software.amazon.awssdk:bom:2.33.4')
+    implementation 'software.amazon.awssdk:sqs'
+    implementation 'software.amazon.awssdk:ssm'
+    testImplementation platform('org.junit:junit-bom:5.13.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+test { useJUnitPlatform() }
+
+tasks.register('lambdaZip', Zip) {
+    dependsOn compileJava
+    archiveFileName = 'strava-calendar-sync.zip'
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    into('lib') { from configurations.runtimeClasspath }
+    from sourceSets.main.output
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
