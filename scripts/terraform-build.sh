@@ -18,15 +18,20 @@ case "$(uname -m)" in
   *) echo "Unsupported CPU architecture: $(uname -m)" >&2; exit 1 ;;
 esac
 
-jdk_home="$tools_dir/jdk-21-$adoptium_os-$adoptium_arch"
+jdk_install_dir="$tools_dir/jdk-21-$adoptium_os-$adoptium_arch"
+if [[ "$adoptium_os" == "mac" ]]; then
+  java_home="$jdk_install_dir/Contents/Home"
+else
+  java_home="$jdk_install_dir"
+fi
 
-if [[ ! -x "$jdk_home/bin/javac" ]]; then
-  mkdir -p "$tools_dir" "$jdk_home"
+if [[ ! -x "$java_home/bin/javac" ]]; then
+  mkdir -p "$tools_dir" "$jdk_install_dir"
   jdk_archive="$tools_dir/jdk-21.tar.gz"
   curl --fail --location --silent --show-error \
     "https://api.adoptium.net/v3/binary/latest/21/ga/$adoptium_os/$adoptium_arch/jdk/hotspot/normal/eclipse" \
     --output "$jdk_archive"
-  tar -xzf "$jdk_archive" --strip-components=1 -C "$jdk_home"
+  tar -xzf "$jdk_archive" --strip-components=1 -C "$jdk_install_dir"
 fi
 
 if [[ ! -x "$gradle_home/bin/gradle" ]]; then
@@ -36,7 +41,7 @@ if [[ ! -x "$gradle_home/bin/gradle" ]]; then
   unzip -q -o "$archive" -d "$tools_dir"
 fi
 
-if ! JAVA_HOME="$jdk_home" "$gradle_home/bin/gradle" -p "$project_dir" clean test lambdaZip --no-daemon --console=plain >&2; then
+if ! JAVA_HOME="$java_home" "$gradle_home/bin/gradle" -p "$project_dir" clean test lambdaZip --no-daemon --console=plain >&2; then
   if [[ -d "$project_dir/build/test-results" ]]; then
     find "$project_dir/build/test-results" -name '*.xml' -type f -exec sh -c 'echo "--- $1" >&2; cat "$1" >&2' _ {} \;
   fi
