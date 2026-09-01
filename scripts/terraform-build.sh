@@ -23,7 +23,7 @@ if [[ ! -x "$gradle_home/bin/gradle" ]]; then
   unzip -q -o "$archive" -d "$tools_dir"
 fi
 
-if ! JAVA_HOME="$jdk_home" "$gradle_home/bin/gradle" -p "$project_dir" clean test lambdaZip --no-daemon --console=plain >&2; then
+if ! JAVA_HOME="$jdk_home" "$gradle_home/bin/gradle" -p "$project_dir" clean test lambdaZip --no-daemon --console=plain --info >&2; then
   find "$project_dir/build/test-results" -name '*.xml' -type f -exec sh -c 'echo "--- $1" >&2; cat "$1" >&2' _ {} \; 2>/dev/null || true
   exit 1
 fi
