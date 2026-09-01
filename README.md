@@ -66,6 +66,22 @@ Strava's **Only You** visibility is supported. Strava's separate **Hide Start Ti
 
 ## Operations
 
+### Import recent activities
+
+Backfill the last 30 days through the same idempotent SQS worker:
+
+```bash
+python3 scripts/backfill.py --days 30
+```
+
+For a named AWS profile:
+
+```bash
+python3 scripts/backfill.py --days 30 --profile my-profile --region eu-central-1
+```
+
+Re-running the command is safe: existing Calendar events are updated rather than duplicated.
+
 Logs are retained for 14 days under:
 
 - `/aws/lambda/strava-calendar-sync-webhook`

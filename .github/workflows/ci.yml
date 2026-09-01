@@ -22,5 +22,4 @@ jobs:
           terraform -chdir=terraform init -backend=false
           terraform -chdir=terraform validate
       - name: Check setup script
-        run: python3 -m py_compile scripts/configure.py
-
+        run: python3 -m py_compile scripts/configure.py scripts/backfill.py
