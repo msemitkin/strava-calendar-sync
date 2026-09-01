@@ -26,7 +26,7 @@ Strava -> Lambda Function URL -> webhook Lambda -> SQS -> worker Lambda
 - Terraform 1.8+.
 - Python 3, `curl`, `unzip`, `tar`, and `openssl`.
 - A Strava API application. Set its Authorization Callback Domain to `localhost`.
-- A Google Cloud project with Google Calendar API enabled and an OAuth client of type **Desktop app**.
+- A Google Cloud project with Google Calendar API enabled and a service account JSON key.
 
 Java and Gradle do not need to be installed. The Terraform build hook downloads a JDK and Gradle automatically. The code targets Java 17 bytecode and runs on AWS's Java 21 Lambda runtime.
 
@@ -38,7 +38,20 @@ terraform -chdir=terraform apply
 python3 scripts/configure.py
 ```
 
-The last command opens Strava and Google OAuth pages, creates a dedicated `Strava` calendar, writes credentials directly to SSM SecureString parameters, and registers the webhook. Secrets are neither placed in `.tfvars` nor stored in Terraform state.
+The last command opens Strava OAuth, reads a Google service-account key from your local machine, writes credentials directly to SSM SecureString parameters, and registers the webhook. Secrets are neither placed in `.tfvars` nor stored in Terraform state.
+
+## Google service account setup
+
+1. In Google Cloud Console, create or select a project.
+2. Enable **Google Calendar API** under APIs & Services → Library.
+3. Open IAM & Admin → Service Accounts and create `strava-calendar-sync`.
+4. Open the service account → Keys → Add key → Create new key → JSON. Keep the downloaded file private.
+5. In Google Calendar, create a secondary calendar named `Strava`.
+6. Open the calendar's Settings and sharing → Share with specific people or groups.
+7. Add the service account's `client_email` from the JSON file and choose **Make changes to events**.
+8. In Integrate calendar, copy the **Calendar ID**.
+
+The service account can access only calendars explicitly shared with it. Google OAuth consent, branding, production publishing, a custom domain, and refresh tokens are not required.
 
 For a named AWS profile or another region:
 

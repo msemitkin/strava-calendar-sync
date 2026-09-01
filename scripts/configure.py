@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """One-time OAuth setup. Secrets are read locally and written directly to SSM."""
 
-import argparse, getpass, json, subprocess, threading, urllib.parse, urllib.request, webbrowser
+import argparse, getpass, json, pathlib, subprocess, urllib.parse, urllib.request, webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 PORT = 8765
@@ -32,12 +32,6 @@ def post_form(url, values):
                                      headers={"Content-Type": "application/x-www-form-urlencoded"})
     with urllib.request.urlopen(request) as response: return json.load(response)
 
-def json_request(url, token, method="GET", body=None):
-    data = json.dumps(body).encode() if body is not None else None
-    request = urllib.request.Request(url, data=data, method=method,
-                                     headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
-    with urllib.request.urlopen(request) as response: return json.load(response) if response.length != 0 else {}
-
 def put_parameter(name, value, region, profile):
     command = ["aws", "ssm", "put-parameter", "--name", name, "--type", "SecureString",
                "--value", value, "--overwrite", "--region", region, "--no-cli-pager"]
@@ -62,30 +56,27 @@ def main():
     strava_tokens = post_form("https://www.strava.com/oauth/token", {
         "client_id": strava_id, "client_secret": strava_secret, "code": strava_code, "grant_type": "authorization_code"})
 
-    google_id = input("Google OAuth client ID: ").strip()
-    google_secret = getpass.getpass("Google OAuth client secret: ").strip()
-    google_auth = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode({
-        "client_id": google_id, "redirect_uri": REDIRECT, "response_type": "code",
-        "access_type": "offline", "prompt": "consent",
-        "scope": "https://www.googleapis.com/auth/calendar.app.created"})
-    google_code = oauth_code(google_auth)
-    google_tokens = post_form("https://oauth2.googleapis.com/token", {
-        "client_id": google_id, "client_secret": google_secret, "code": google_code,
-        "redirect_uri": REDIRECT, "grant_type": "authorization_code"})
-    calendar = json_request("https://www.googleapis.com/calendar/v3/calendars", google_tokens["access_token"],
-                            "POST", {"summary": "Strava", "timeZone": "Europe/Kyiv"})
+    key_path = pathlib.Path(input("Path to Google service account JSON key: ").strip()).expanduser()
+    service_account = json.loads(key_path.read_text())
+    required_key_fields = {"type", "client_email", "private_key", "token_uri"}
+    if service_account.get("type") != "service_account" or not required_key_fields.issubset(service_account):
+        raise SystemExit("The selected file is not a valid Google service account JSON key")
+    calendar_id = input("Google Strava calendar ID: ").strip()
+    if not calendar_id:
+        raise SystemExit("Google calendar ID is required")
 
     values = {
         "strava_client_id": strava_id, "strava_client_secret": strava_secret,
         "strava_refresh_token": strava_tokens["refresh_token"],
-        "google_client_id": google_id, "google_client_secret": google_secret,
-        "google_refresh_token": google_tokens["refresh_token"], "google_calendar_id": calendar["id"]}
+        "google_service_account_json": json.dumps(service_account, separators=(",", ":")),
+        "google_calendar_id": calendar_id}
     for key, value in values.items(): put_parameter(f"{prefix}/{key}", str(value), args.region, args.profile)
 
     subscription = post_form("https://www.strava.com/api/v3/push_subscriptions", {
         "client_id": strava_id, "client_secret": strava_secret,
         "callback_url": webhook_url, "verify_token": verify_token})
-    print(f"\nDone. Strava webhook subscription ID: {subscription['id']}; calendar: {calendar['id']}")
+    print(f"\nDone. Strava webhook subscription ID: {subscription['id']}")
+    print(f"Google Calendar: {calendar_id}")
+    print(f"Service account: {service_account['client_email']}")
 
 if __name__ == "__main__": main()
-

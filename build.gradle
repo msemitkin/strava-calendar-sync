@@ -14,6 +14,7 @@ dependencies {
     implementation 'com.amazonaws:aws-lambda-java-events:3.16.1'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.0'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.20.0'
+    implementation 'com.google.auth:google-auth-library-oauth2-http:1.33.1'
     implementation platform('software.amazon.awssdk:bom:2.33.4')
     implementation 'software.amazon.awssdk:sqs'
     implementation 'software.amazon.awssdk:ssm'

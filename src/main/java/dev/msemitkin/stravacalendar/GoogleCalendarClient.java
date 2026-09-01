@@ -1,7 +1,10 @@
 package dev.msemitkin.stravacalendar;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import dev.msemitkin.stravacalendar.model.StravaActivity;
+import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -13,9 +16,19 @@ import java.util.Map;
 
 final class GoogleCalendarClient {
     private final HttpClient http = HttpClient.newHttpClient();
-    private final OAuthClient oauth = new OAuthClient();
     private final Map<String, String> config;
-    GoogleCalendarClient(Map<String, String> config) { this.config = config; }
+    private final GoogleCredentials credentials;
+
+    GoogleCalendarClient(Map<String, String> config) {
+        this.config = config;
+        try {
+            this.credentials = ServiceAccountCredentials
+                    .fromStream(new ByteArrayInputStream(required("google_service_account_json").getBytes(StandardCharsets.UTF_8)))
+                    .createScoped("https://www.googleapis.com/auth/calendar.events");
+        } catch (Exception e) {
+            throw new IllegalStateException("Invalid Google service account credentials", e);
+        }
+    }
 
     void upsert(StravaActivity activity) throws Exception {
         var id = eventId(activity.id());
@@ -50,9 +63,8 @@ final class GoogleCalendarClient {
     }
 
     private HttpResponse<String> send(String method, String url, String body) throws Exception {
-        var token = oauth.refresh("https://oauth2.googleapis.com/token", Map.of(
-                "client_id", required("google_client_id"), "client_secret", required("google_client_secret"),
-                "refresh_token", required("google_refresh_token"), "grant_type", "refresh_token"));
+        credentials.refreshIfExpired();
+        var token = credentials.getAccessToken().getTokenValue();
         var builder = HttpRequest.newBuilder(URI.create(url)).header("authorization", "Bearer " + token);
         if (body != null) builder.header("content-type", "application/json");
         builder.method(method, body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body));
@@ -83,4 +95,3 @@ final class GoogleCalendarClient {
         };
     }
 }
-
