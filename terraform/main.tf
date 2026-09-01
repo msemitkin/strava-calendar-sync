@@ -63,7 +63,8 @@ resource "aws_iam_role_policy" "worker_access" {
   role = aws_iam_role.worker.id
   policy = jsonencode({ Version = "2012-10-17", Statement = [
     { Effect = "Allow", Action = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"], Resource = aws_sqs_queue.events.arn },
-    { Effect = "Allow", Action = ["ssm:GetParametersByPath"], Resource = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${var.parameter_prefix}/*" }
+    { Effect = "Allow", Action = ["ssm:GetParametersByPath"], Resource = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${var.parameter_prefix}/*" },
+    { Effect = "Allow", Action = ["ssm:PutParameter"], Resource = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${var.parameter_prefix}/strava_refresh_token" }
   ] })
 }
 
@@ -101,6 +102,7 @@ resource "aws_lambda_function" "worker" {
   source_code_hash = data.external.build.result.source_code_hash
   memory_size      = 768
   timeout          = 60
+  reserved_concurrent_executions = 1
   environment { variables = { PARAMETER_PREFIX = var.parameter_prefix } }
   depends_on = [aws_iam_role_policy_attachment.worker_logs, aws_cloudwatch_log_group.worker]
 }
