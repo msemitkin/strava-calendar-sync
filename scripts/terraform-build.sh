@@ -23,7 +23,10 @@ if [[ ! -x "$gradle_home/bin/gradle" ]]; then
   unzip -q -o "$archive" -d "$tools_dir"
 fi
 
-JAVA_HOME="$jdk_home" "$gradle_home/bin/gradle" -p "$project_dir" clean test lambdaZip --no-daemon --console=plain >&2
+if ! JAVA_HOME="$jdk_home" "$gradle_home/bin/gradle" -p "$project_dir" clean test lambdaZip --no-daemon --console=plain >&2; then
+  find "$project_dir/build/test-results" -name '*.xml' -type f -exec sh -c 'echo "--- $1" >&2; cat "$1" >&2' _ {} \; 2>/dev/null || true
+  exit 1
+fi
 artifact="$project_dir/build/distributions/strava-calendar-sync.zip"
 hash="$(openssl dgst -sha256 -binary "$artifact" | openssl base64 -A)"
 printf '{"artifact_path":"%s","source_code_hash":"%s"}\n' "$artifact" "$hash"
