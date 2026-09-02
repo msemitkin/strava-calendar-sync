@@ -44,7 +44,7 @@ def main():
     parser.add_argument("--profile")
     args = parser.parse_args()
     prefix = terraform_output("parameter_prefix")
-    webhook_url = terraform_output("webhook_url")
+    webhook_url = terraform_output("webhook_callback_url")
     verify_token = terraform_output("webhook_verify_token")
 
     strava_id = input("Strava client ID: ").strip()

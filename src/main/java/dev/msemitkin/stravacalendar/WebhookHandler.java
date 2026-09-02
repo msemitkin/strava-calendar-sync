@@ -19,16 +19,24 @@ public final class WebhookHandler implements RequestHandler<APIGatewayV2HTTPEven
     @Override
     public APIGatewayV2HTTPResponse handleRequest(APIGatewayV2HTTPEvent request, Context context) {
         try {
+            if (!constantTimeEquals("/" + verifyToken, request.getRawPath()))
+                return response(403, "{\"error\":\"invalid_callback_path\"}");
             if ("GET".equalsIgnoreCase(request.getRequestContext().getHttp().getMethod()))
                 return verify(request.getQueryStringParameters());
+            if (!"POST".equalsIgnoreCase(request.getRequestContext().getHttp().getMethod()))
+                return response(405, "{\"error\":\"method_not_allowed\"}");
             var event = Json.MAPPER.readValue(request.getBody(), WebhookEvent.class);
-            if ("activity".equals(event.objectType()))
+            if ("activity".equals(event.objectType()) && isSupportedAspect(event.aspectType()))
                 sqs.sendMessage(SendMessageRequest.builder().queueUrl(queueUrl).messageBody(request.getBody()).build());
             return response(200, "{}");
         } catch (Exception e) {
             context.getLogger().log("Webhook failure: " + e.getMessage());
             return response(500, "{\"error\":\"internal_error\"}");
         }
+    }
+
+    private static boolean isSupportedAspect(String aspect) {
+        return "create".equals(aspect) || "update".equals(aspect) || "delete".equals(aspect);
     }
 
     private APIGatewayV2HTTPResponse verify(Map<String, String> query) throws Exception {
@@ -48,4 +56,3 @@ public final class WebhookHandler implements RequestHandler<APIGatewayV2HTTPEven
                 .withHeaders(Map.of("content-type", "application/json")).withBody(body).build();
     }
 }
-

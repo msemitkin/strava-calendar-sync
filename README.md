@@ -9,6 +9,7 @@ Serverless synchronization of private and public Strava activities to a dedicate
 - Creates an event at the real activity start time with elapsed duration, distance, elevation, and Strava URL.
 - Uses stable event IDs, so webhook retries do not create duplicates.
 - Responds to Strava quickly and processes API calls asynchronously through SQS.
+- Requires a Terraform-generated secret callback path before accepting webhook events.
 - Sends repeatedly failing messages to a dead-letter queue.
 
 ## Architecture
@@ -65,6 +66,17 @@ python3 scripts/configure.py --profile my-profile --region eu-central-1
 Strava's **Only You** visibility is supported. Strava's separate **Hide Start Time** privacy control may cause the API to return an obfuscated time; no downstream integration can recover the hidden start time.
 
 ## Operations
+
+### Secure an existing webhook subscription
+
+After upgrading an existing deployment from the original root callback URL:
+
+```bash
+terraform -chdir=terraform apply
+python3 scripts/secure-webhook.py
+```
+
+The script removes the old subscription and recreates it with the secret callback path. Do not print or share the sensitive `webhook_callback_url` Terraform output.
 
 ### Import recent activities
 
